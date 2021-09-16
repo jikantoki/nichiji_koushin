@@ -1,0 +1,51 @@
+#packopt name "日時を更新くん"
+
+#uselib "shell32.dll"
+#func DragAcceptFiles "DragAcceptFiles" int,int
+#func DragQueryFile   "DragQueryFileA"  int,int,int,int
+#func DragQueryPoint  "DragQueryPoint"  int,int
+#func DragFinish      "DragFinish"      int
+
+#define WM_DROPFILES    0x0233
+screen 0,800,320
+
+; WM_DROPFILES メッセージハンドラを設定
+oncmd gosub *OnDropFiles, WM_DROPFILES
+
+; ファイルをドラッグ＆ドロップできるように設定
+DragAcceptFiles hwnd, 1
+
+title "日時を更新くん - ウィンドウにファイルをドロップしてください"
+mes "日時を更新くん by ときえのき→https://enoki.xyz"
+mes "こんなクソアプ作ってるけど作曲家だってよ"
+mes "ここにD&Dしたファイルの更新日時を現在時刻にします"
+stop
+
+*OnDropFiles
+; --- ファイルがドロップされたとき ---
+
+; ドロップされたファイルの数を取得する
+hdrop = wParam                  ; ドロップファイル情報のハンドル
+DragQueryFile hdrop, -1, 0, 0
+ndrop = stat                    ; ファイルの数
+
+; 画面をクリア
+//syscolor 5 : boxf
+//syscolor 8 : pos 0,0
+
+; ファイル名を取得して表示
+sdim filename, 260
+repeat ndrop
+        DragQueryFile hdrop, cnt, varptr(filename), 260
+        time = strf("%04d年", gettime(0)) + strf("%02d月", gettime(1)) + strf("%02d日", gettime(3)) + strf("%02d時", gettime(4)) + strf("%02d分", gettime(5)) + strf("%02d秒: ", gettime(6))
+    	mes time + filename
+    	command="powershell -Command \"Set-ItemProperty \"\"\""+filename+"\"\"\" -name LastWriteTime -value $(Get-Date)\""
+    	command="powershell -Command \"Set-ItemProperty \"\"\""+filename+"\"\"\" -name LastAccessTime -value $(Get-Date)\""
+    	exec command
+    	//	copy /b filename+
+        
+loop
+
+; ドロップファイル情報をクリア (これをしないとメモリリークになる)
+DragFinish hdrop
+return
